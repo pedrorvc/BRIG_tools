@@ -8,19 +8,34 @@ AUTHOR
     
 DESCRIPTION
 
-
+    This script serves to create xml files contaning the information necessary
+    for the execution of BRIG (Blast Ring Image Generator), reducing the time
+    performing the tedious task of setting up all the information on the GUI 
+    and provides a quick way to produce an image.
+    
+    The arguments for this script provide some (but not all) 
+    of the available options in BRIG, which were the ones I used to change the most.
+    
+    
+    TODO:
+        - Parsing of .embl files for annotation;
+        - Add other blast types: blastp, blastx, tblastn, tblastx;
+        - Add support for Genbank reference files. Provide the ability to select
+          genes or proteins;
+        - 
+    
 """
 
+import argparse
 import csv
 import os
-import argparse
-
 import xml.etree.ElementTree as ET
-from xml.dom import minidom
-from matplotlib import cm
 from collections import OrderedDict
+from xml.dom import minidom
 
 from Bio import SeqIO
+from matplotlib import cm
+
 
 def listdir_fullpath(path):
     """ Gets the full path of the files from a directory
@@ -36,17 +51,16 @@ def listdir_fullpath(path):
     return [os.path.join(path, f) for f in os.listdir(path)]
 
 
-def prettify(elem):
-    """Return a pretty-printed XML string for the Element.
-    """
-    rough_string = ET.tostring(elem, 'utf-8')
-    reparsed = minidom.parseString(rough_string)
-    
-    return reparsed.toprettyxml(indent="  ")
-
-
 def ring_attributes(colour, name, position):
-    """
+    """ Creates ring attributes.
+    
+        Args:
+            colour (str): color of the ring.
+            name (str): name of the ring.
+            position (str): position of the ring.
+            
+        Returns:
+            ring_attrs (dict): attributes of any regular ring of the BRIG xml.
     """
     
     ring_attrs = {"colour" : colour,
@@ -63,7 +77,13 @@ def ring_attributes(colour, name, position):
 
 
 def annotation_ring_attributes(position):
-    """
+    """ Creates annotation ring attributes.
+    
+        Args:
+            position (str): position of the ring.
+            
+        Returns:
+            annotation_ring_attrs (dict): attributes of the annotation ring of the BRIG xml.
     """
     
     annotation_ring_attrs = {"colour" : '172,14,225',
@@ -80,7 +100,18 @@ def annotation_ring_attributes(position):
 
 
 def create_feature_attrs(label, colour, decoration, start, stop):
-    """
+    """ Create attributes for the Feature SubElements of the annotation ring.
+    
+        Args:
+            label (str): name of the gene/CDS to annotate
+            colour (str): colour of the decoration for the annotation
+            decoration (str): shape of the gene/CDS to annotate, for example, 'clockwise-arrow'
+            start (str): start of the gene/CDS to annotate
+            stop (str): stop of the gene/CDS to annotate
+            
+        Results:
+            feature_element_attrs (dict): attributes of the feature element.
+            feature_range_element_attrs (dict): attributes of the feature range element
     """
     
     feature_element_attrs = {'label' : label,
@@ -94,7 +125,13 @@ def create_feature_attrs(label, colour, decoration, start, stop):
 
 
 def create_annotation_ring_tsv(annotation_ring, annotation_file):
-    """
+    """ Uses a tsv file to annotate the reference genome.
+    
+        Args:
+            annotation_ring: ElementTree SubElement object containing the 'ring' tag and its attributes.
+            annotation_file (str): Full path to the file containing annotations for the reference genome.
+            
+            
     """
     
     with open(annotation_file) as tsvfile:
@@ -115,89 +152,17 @@ def create_annotation_ring_tsv(annotation_ring, annotation_file):
           feature_element = ET.SubElement(annotation_ring, 'feature', attrib=feature_element_attrs)        
           feature_range_element = ET.SubElement(feature_element, 'featureRange', attrib=feature_range_element_attrs)
           
-
-#def create_gbk_genes_of_interest_feature_elements_concat(annotation_ring, records, genes_of_interest):
-#    """
-#    """
-#    
-#    with open(genes_of_interest, "r") as f:
-#        genes = f.readlines()
-#        genes = [gene.rstrip() for gene in genes]
-#    
-#    for seq_record in records:
-##        ass_num = seq_record.id
-#
-#        for f in seq_record.features:
-#            
-#            if f.type == 'CDS':
-#                            
-#                if 'gene' in f.qualifiers and f.qualifiers['gene'][0] in genes:
-#                    label = f.qualifiers['gene'][0]
-#                elif 'product' in f.qualifiers and f.qualifiers['product'][0] in genes:
-#                    product = f.qualifiers['product'][0]
-#                    label = product
-#                else:
-#                    #print(ass_num, "No gene or product tag!\n")
-#                    continue
-#                    
-#                
-#                start = str(f.location.start.position)
-#                end = str(f.location.end.position)
-#                strand = f.location.strand
-#                    
-#                    
-#                if strand == -1:
-#                    decoration = 'counterclockwise-arrow'
-#                
-#                elif strand == 1:
-#                    decoration = 'clockwise-arrow'
-#                
-#                # Create xml attributes
-#                feature_element_attrs, feature_range_element_attrs = create_feature_attrs(label, "black", decoration, start, end)
-#                  
-#                # Create xml elements
-#                feature_element = ET.SubElement(annotation_ring, 'feature', attrib=feature_element_attrs)        
-#                feature_range_element = ET.SubElement(feature_element, 'featureRange', attrib=feature_range_element_attrs)
-      
-              
-#def create_gbk_feature_elements_concat(annotation_ring, records):
-#    """
-#    """
-#    
-#    for seq_record in records:
-##        ass_num = seq_record.id
-#        
-#        for fea in seq_record.features:
-#            if fea.type == 'CDS':
-#                start = str(fea.location.start.position)
-#                end = str(fea.location.end.position)
-#                strand = fea.location.strand
-#                
-#                if 'gene' in fea.qualifiers:
-#                    label = str(fea.qualifiers['gene'][0])
-#                elif 'product' in fea.qualifiers:
-#                    product = fea.qualifiers['product'][0]
-#                    label = str(product)
-#                else:
-##                    print(ass_num, "No gene or product tag!\n")
-#                    continue
-#                
-#                if strand == -1:
-#                    decoration = 'counterclockwise-arrow'
-#                
-#                elif strand == 1:
-#                    decoration = 'clockwise-arrow'
-#                    
-#                # Create xml attributes
-#                feature_element_attrs, feature_range_element_attrs = create_feature_attrs(label, "black", decoration, start, end)
-#                  
-#                # Create xml elements
-#                feature_element = ET.SubElement(annotation_ring, 'feature', attrib=feature_element_attrs)        
-#                feature_range_element = ET.SubElement(feature_element, 'featureRange', attrib=feature_range_element_attrs)
                 
                 
-def annotation_ring_feature_elements_gbk_concat(annotation_ring, record, genome_size):
-    """
+def annotation_ring_feature_elements_gbk_concat(annotation_ring, record, genome_size=False):
+    """ Creates the annotation ring feature elements, using a concatenated Genbank annotation file.
+    
+        Args:
+            annotation_ring: ElementTree SubElement object containing the 'ring' tag and its attributes.
+            record (SeqRecord): Object of BioPython containing the information of the input Genbank.
+            genome_size (bool): Size of genome. Integer when a Genbank divided by contigs is provided.
+                                                Boolean (False) when a concatenated Genbank is provided.
+                                                       
     """
     
     if type(genome_size) == int:
@@ -240,19 +205,26 @@ def annotation_ring_feature_elements_gbk_concat(annotation_ring, record, genome_
             
 
 def annotation_ring_feature_elements_genes_of_interest_gbk_concat(annotation_ring, record, genes, genome_size=False):
+    """ Creates the annotation ring feature elements, using a concatenated Genbank annotation file 
+        and specific gene annotations.
+    
+        Args:
+            annotation_ring: ElementTree SubElement object containing the 'ring' tag and its attributes.
+            record (SeqRecord): Object of BioPython containing the information of the input Genbank.
+            genome_size (bool): Size of genome. Integer when a Genbank divided by contigs is provided.
+                                                Boolean (False) when a concatenated Genbank is provided.
+                                        
     """
-    """
-#    print(record.id)
     
     if type(genome_size) == int:
         
         for f in record.features:
             if f.type == "source":
                 size = f.location.end.position
-    #            print(size)
         
             if f.type == 'CDS':
-                            
+                
+                # Find the 'gene' tag and determine if the gene belongs to the specified genes to be annotated
                 if 'gene' in f.qualifiers and f.qualifiers['gene'][0] in genes:
                     label = f.qualifiers['gene'][0]
                 elif 'product' in f.qualifiers and f.qualifiers['product'][0] in genes:
@@ -262,20 +234,19 @@ def annotation_ring_feature_elements_genes_of_interest_gbk_concat(annotation_rin
                     #print(ass_num, "No gene or product tag!\n")
                     continue
                     
-                
+                # Determine the start, stop and strand of the gene
                 start = str(f.location.start.position + genome_size)
                 end = str(f.location.end.position + genome_size)
                 strand = f.location.strand
                     
-                    
+                
+                # Define the decoration of the annotation based on the strand
                 if strand == -1:
                     decoration = 'counterclockwise-arrow'
                 
                 elif strand == 1:
                     decoration = 'clockwise-arrow'
-                
-#                print(label, start, end)
-                
+                                
                 # Create xml attributes
                 feature_element_attrs, feature_range_element_attrs = create_feature_attrs(label, "black", decoration, start, end)
                   
@@ -289,15 +260,24 @@ def annotation_ring_feature_elements_genes_of_interest_gbk_concat(annotation_rin
       
 
 def create_annotation_ring_gbk_concat(annotation_ring, annotation_file, genes_of_interest, records):
-    """
+    """ Create annotation ring using a concatenated Genbank annotation file.
+    
+        Args:
+            annotation_ring: ElementTree SubElement object containing the 'ring' tag and its attributes.
+            annotation_file (str): Full path to the file containing annotations for the reference genome.
+            genes_of_interest (str): Full path to the file containing the genes to search for in the Genbank file.
+            records (SeqRecord): Object of BioPython containing the information of the input Genbank.
+            
     """
     
     if genes_of_interest != []:
         
+        # Get the genes to serach in the Genbank file
         with open(genes_of_interest, "r") as f:
             genes = f.readlines()
             genes = [gene.rstrip() for gene in genes]
         
+        # Create feature elements of the annotation ring
         for seq_record in records:
             annotation_ring_feature_elements_genes_of_interest_gbk_concat(annotation_ring, seq_record, genes)
 
@@ -305,112 +285,36 @@ def create_annotation_ring_gbk_concat(annotation_ring, annotation_file, genes_of
         
         for seq_record in records:
             annotation_ring_feature_elements_gbk_concat(annotation_ring, seq_record)
-
-#def create_gbk_feature_elements_contigs(annotation_ring, records, seq_records_dict, content_dict):
-#    """
-#    """
-#    
-#    genome_size = 0
-#    for i in range(1, len(records)+1):                   
-#        ord_record = seq_records_dict[content_dict[str(i)]]
-#        
-#        for fea in ord_record.features:
-#            if fea.type == 'source':
-#                size = fea.location.end.position
-#                
-#            
-#            if fea.type == 'CDS':
-#                
-#                start = str(fea.location.start.position + genome_size)
-#                end = str(fea.location.end.position + genome_size)
-#                strand = fea.location.strand
-#            
-#                if 'gene' in fea.qualifiers:
-#                    label = fea.qualifiers['gene'][0]
-#                elif 'product' in fea.qualifiers:
-#                    product = fea.qualifiers['product'][0]
-#                    label = product
-#                else:
-#    #                print(ass_num, "No gene or product tag!\n")
-#                    continue
-#                
-#                if strand == -1:
-#                    decoration = 'counterclockwise-arrow'
-#                
-#                elif strand == 1:
-#                    decoration = 'clockwise-arrow'
-#                    
-#                # Create xml attributes
-#                feature_element_attrs, feature_range_element_attrs = create_feature_attrs(str(label), 'black', decoration, str(start), str(end))
-#                  
-#                # Create xml elements
-#                feature_element = ET.SubElement(annotation_ring, 'feature', attrib=feature_element_attrs)        
-#                feature_range_element = ET.SubElement(feature_element, 'featureRange', attrib=feature_range_element_attrs)
-#            
-#        genome_size += size
-
-#def create_gbk_feature_genes_of_interest_elements_contigs(annotation_ring, records, genes_of_interest, seq_records_dict, content_dict):
-#    """
-#    """
-#    
-#    with open(genes_of_interest, "r") as f:
-#        genes = f.readlines()
-#        genes = [gene.rstrip() for gene in genes]
-#    
-#    genome_size = 0
-#    for i in range(1, len(records)+1):                   
-#        ord_record = seq_records_dict[content_dict[str(i)]]
-#        
-#        for f in ord_record.features:
-#        
-#            if f.type == 'source':
-#                size = f.location.end.position
-#            
-#            if f.type == 'CDS':
-#                        
-#                if 'gene' in f.qualifiers and f.qualifiers['gene'][0] in genes:
-#                    label = f.qualifiers['gene'][0]
-#                elif 'product' in f.qualifiers and f.qualifiers['product'][0] in genes:
-#                    product = f.qualifiers['product'][0]
-#                    label = product
-#                else:
-#                    #print(ass_num, "No gene or product tag!\n")
-#                    continue
-#                    
-#                start = str(f.location.start.position + genome_size)
-#                end = str(f.location.end.position + genome_size)
-#                strand = f.location.strand
-#                    
-#                if strand == -1:
-#                    decoration = 'counterclockwise-arrow'
-#                
-#                elif strand == 1:
-#                    decoration = 'clockwise-arrow'
-#                                                    
-#                # Create xml attributes
-#                feature_element_attrs, feature_range_element_attrs = create_feature_attrs(label, "black", decoration, start, end)
-#                  
-#                # Create xml elements
-#                feature_element = ET.SubElement(annotation_ring, 'feature', attrib=feature_element_attrs)        
-#                feature_range_element = ET.SubElement(feature_element, 'featureRange', attrib=feature_range_element_attrs)
-#                
-#        genome_size += size
         
 
 def create_annotation_ring_gbk_contigs(annotation_ring, annotation_file, records, genes_of_interest, contig_order):
-    """
+    """ Create annotation ring using a Genbank annotation file divided by contigs.
+    
+        Args:
+            annotation_ring: ElementTree SubElement object containing the 'ring' tag and its attributes.
+            annotation_file (str): Full path to the file containing annotations for the reference genome.
+            genes_of_interest (str): Full path to the file containing the genes to search for in the Genbank file.
+            records (SeqRecord): Object of BioPython containing the information of the input Genbank.
+            contig_order (str): Full path to the file containing the order of the contigs.
+
     """
     
     if contig_order != []:
-          
+        
+        
         with open(contig_order) as tsvfile:
             reader = csv.DictReader(tsvfile, dialect='excel-tab')
-        
+            
+            # Create an OrderedDict with the contents of the file
+            # The keys are the order are a number representing the order of the contig
+            # The values are the names of the contigs
             content_dict = OrderedDict()
             for r in reader:
                 content_dict[r["order"]] = r["contig"]
     
-
+        # Create an OrderedDict with the content of each contig
+        # The keys are the names of the contigs
+        # The values are SeqRecord objects from BipPython
         seq_records_dict = OrderedDict()
         for record in records:            
             seq_records_dict[record.id] = record
@@ -456,28 +360,47 @@ def create_annotation_ring_gbk_contigs(annotation_ring, annotation_file, records
 
 
 def write_xml(root_elem, output_file):
+    """ Writes a xml file.
+    
+        Args:
+            root_elem is a ElementTree Element object containing all the information 
+            required for the output file.
+            output_file (str): full path to the output file
+        
+            
     """
-    """
-    #brig_params.xml
 
     xml_file = ET.tostring(root_elem, encoding='utf8').decode('utf8')
     
     pretty_xml_file = minidom.parseString(xml_file).toprettyxml(indent='    ')
     
+    output_file = output_file + ".xml"
+    
     with open(output_file, "w") as f:
         f.write(pretty_xml_file)
 
 
-
-
-# Get information 
-
-## Create root
-### Root attributes (BRIG)
+####### Create xml elemnts
+        
+# Create root element
         
 def create_root_element(blast_options, legend_position, query_file, 
                                output_folder, image_output_file, title, image_format):
     """
+    Creates the root element of the xml file and its attributes.
+    
+    Args: 
+        blast_options (str): additional options for blast, for example, -evalue or num_threads
+        legend_position (str): position of the legend on the image
+        query_file (str): full path to the query file
+        output_folder (str): full path to the output folder
+        image_output_file (str): full path to the image output file
+        title (str): title of the output image
+        image_format (str): format of the image output file
+            
+    Returns:
+        root: ElementTree Element object containing the BRIG tag and its attributes
+        
     """
 
     root_attrs = {"blastOptions" : blast_options,
@@ -498,10 +421,18 @@ def create_root_element(blast_options, legend_position, query_file,
 
 #### Create root children
 
-# Create cgview_settings
+# Create cgview_settings element
     
 def create_cgview_settings_element(root, height, width):
-    """
+    """ Creates the cgview_settings element of the xml file and its attributes.
+    
+        Args:
+            root: ElementTree Element object containing the BRIG tag and its attributes.
+            height (str): height of the output image in pixels
+            width (str): width of the output image in pixels
+        
+        Returns:
+            cgview_settings: ElementTree SubElement object containing the cgview settings tag and its attributes
     """
 
     cgview_settings_attrs = {"arrowheadLength" : "medium",
@@ -548,15 +479,25 @@ def create_cgview_settings_element(root, height, width):
 
 
     cgview_settings = ET.SubElement(root, 'cgview_settings', attrib=cgview_settings_attrs)
-    
-    
-#    return cgview_settings
+        
+    return cgview_settings
 
-# Create brig_settings
+
+# Create brig_settings element 
     
 def create_brig_settings_element(root, java_memory):
+    """ Creates the brig_settings element of the xml file and its attributes.
+    
+        Args:
+            root: ElementTree Element object containing the BRIG tag and its attributes.
+            java_memory (str): amount of memory (in bytes) java is allowed to use for BRIG
+    
+        Returns:
+            brig_settings: ElementTree SubElement object containing the brig settings tag and its attributes
+
     """
-    """
+    
+    
 
     brig_settings_attrs = {"Ring1" : "172,14,225",
                            "Ring2" : "222,149,220",
@@ -583,53 +524,96 @@ def create_brig_settings_element(root, java_memory):
     brig_settings = ET.SubElement(root, 
                                   "brig_settings", 
                                   attrib=brig_settings_attrs)
+    
+    return brig_settings
 
 
-## Create special
+## Create special element
 
 def create_special_element(root):
+    """Creates the 'special' element of the xml file and its attributes
+    
+        Args:
+            root: ElementTree Element object containing the BRIG tag and its attributes.
+            
+        Returns:
+            gc_content_special: ElementTree SubElement object containing the 'special' tag and its attributes
+            gc_skew_special: ElementTree SubElement object containing the 'special' tag and its attributes
+                
+
     """
-    """
+    
     gc_content_special = ET.SubElement(root, 'special', attrib={'value' : 'GC Content'})
     gc_skew_special = ET.SubElement(root, 'special', attrib={'value' : 'GC Skew'})
+    
+    return gc_content_special, gc_skew_special
+
 
 # Create reference dir element
 
 def create_reference_directory_element(root, reference_directory):
-    """
+    """ Creates the 'reference directory' element of the xml file and its attributes.
+
+        Args:
+            root: ElementTree Element object containing the 'BRIG' tag and its attributes.
+            reference_directory (str): full path to the reference directory that contains 
+                                        the fasta files used to build the rings.  
+    
+        Returns:
+            ref_file: ElementTree SubElement object containing the 'refFile' tag and its attributes
+
+    
     """
 
     ref_dir = ET.SubElement(root, 
                             "refDir", 
                             attrib={"location" : reference_directory})
     
+    # Obtain the full path for all the files in the directory
     ref_dir_list = listdir_fullpath(reference_directory)
     
     for f in ref_dir_list:
         ref_file = ET.SubElement(ref_dir, 
                                  "refFile", 
                                  attrib={"location" : f})
+        
+    return ref_file
 
 
-
-
+# Create the ring where the annotations are defined
 
 def create_annotation_ring(root, reference_directory, annotation_file, genes_of_interest, contig_order):
-    """
+    """ Creates the ring that will contain the annotations for the reference genome.
+    
+        Args:
+            root: ElementTree Element object containing the 'BRIG' tag and its attributes.
+            reference_directory (str): full path to the reference directory that contains 
+                                        the fasta files used to build the rings.  
+            annotation_file (str): Full path to the file containing annotations for the reference genome.
+            genes_of_interest (str): Full path to the file containing a list of specific genes.
+            contig_order (str): Full path to the tab-delimited file containing the order of the contigs.
+            
+            
     """
     
+    # Determine the position of the annotation ring, which will be the postion after the last reference genome
     ring_position = len(os.listdir(reference_directory)) + 2
     
+    # Create the annotation ring element
     annotation_ring = ET.SubElement(root, 'ring', attrib=annotation_ring_attributes(str(ring_position)))
     
+    # Check for annotation file inputs 
     if list(SeqIO.parse(annotation_file, "genbank")) == []:
         create_annotation_ring_tsv(annotation_ring, annotation_file)
     
     else:
         
+        # Get the records of the Genbank file
         records = [r for r in SeqIO.parse(annotation_file, "genbank")]
         
-        if len(records) > 1:
+        ### Check if a contig order file has been provided
+        
+        if len(records) > 1:   # If more than 1 record exists, then the Genbank file is divided by contigs
             create_annotation_ring_gbk_contigs(annotation_ring, annotation_file, records, genes_of_interest, contig_order)
         else:
             create_annotation_ring_gbk_concat(annotation_ring, annotation_file, genes_of_interest, records)
@@ -639,18 +623,26 @@ def create_annotation_ring(root, reference_directory, annotation_file, genes_of_
 ## Create remaining rings
         
 def create_ring_element(root, reference_directory, colormap):
+    """ Creates the ring elements of the xml file, containing the position and color of the rings.
+    
+        Args: 
+            root: ElementTree Element object containing the 'BRIG' tag and its attributes.
+            
+            reference_directory (str): full path to the reference directory that contains 
+                                        the fasta files used to build the rings.  
+            colormap (str): name of the colormap (available in matplotlib) to use for the color of the rings
+        
+        Returns:
+            ring_number_element: ElementTree SubElement object containing the 'ring' tag and its attributes
+            ring_sequence_element: ElementTree SubElement object containing the 'sequence' tag and its attributes
+            
     """
-    """
-
-#    reference_directory = "/home/pcerqueira/Lab_Software/misc_scripts/reference_dir"
-    #    reference_directory = "/home/pcerqueira/Lab_Software/misc_scripts/ordered_reference_dir"
-
     
     ref_dir_list = listdir_fullpath(reference_directory)    
     
     # Gets the colormap from matplotlib with as many colors as the number of files
     cmap = cm.get_cmap(colormap, len(ref_dir_list))
-    # cmap = cm.get_cmap('viridis', len(ref_dir_list))
+
     list_colormap = cmap.colors.tolist()
     
     # Remove the fourth element (transparency) because it is not necessary
@@ -662,22 +654,30 @@ def create_ring_element(root, reference_directory, colormap):
     
     #reversed_colors_to_use = colors_to_use[::-1]
     
-    # Check if the ueser provided ao order for the rings
+    # Check if the user provided an order for the rings
     has_digit = [os.path.basename(x).split("_")[0].isdigit() for x in ref_dir_list] 
     
     if True in has_digit:
+        # Obtain the ring positions
         ring_positions = [os.path.basename(x).split("_")[0] for x in ref_dir_list]
+        
+        # Reverse sort the positions of the rings, because they will be created
+        # in a descending order of their positions
         ring_positions.sort(reverse=True)
         ref_dir_list.sort(reverse=True)
         
         for ring in range(len(ref_dir_list)):
             
+            # The ring positions start at 2 due to the special rings (GC Content and GC Skew)
             ring_position = int(ring_positions[ring]) + 1
             
+            # Select a color for the ring
             ring_color = ",".join([str(e) for e in colors_to_use[ring]])
             
+            # Define the name of the ring
             ring_name = os.path.basename(ref_dir_list[ring]).split("_")[1]
-                        
+            
+            # Create the xml elements
             ring_number_element = ET.SubElement(root, 
                                     'ring',
                                     ring_attributes(ring_color, ring_name, str(ring_position)))
@@ -695,10 +695,13 @@ def create_ring_element(root, reference_directory, colormap):
         ring_number = len(ref_dir_list) + 1
         for ring in range(len(ref_dir_list)):
             
+            # Select a color for the ring
             ring_color = ",".join([str(e) for e in colors_to_use[ring]])
             
+            # Define the name of the ring
             ring_name = os.path.basename(ref_dir_list[ring]).split("_")[0]
             
+            # Create the xml elements
             ring_number_element = ET.SubElement(root, 
                                                 'ring',
                                                 ring_attributes(ring_color, ring_name, str(ring_number)))
@@ -709,11 +712,19 @@ def create_ring_element(root, reference_directory, colormap):
             
             ring_number -= 1
     
+    return ring_number_element, ring_sequence_element
   
 ## Create special rings
 
 def create_special_ring_element(root):
-    """
+    """ Create the 'special' ring element and its attributes.
+    
+        Args:
+            root: ElementTree Element object containing the 'BRIG' tag and its attributes.
+            
+        Returns:
+            gc_content_location: ElementTree SubElement object containing the 'sequence' tag and its attributes
+            gc_skew_location: ElementTree SubElement object containing the 'sequence' tag and its attributes
     """
     
     # Create ring attributes
@@ -728,36 +739,31 @@ def create_special_ring_element(root):
     gc_content_location = ET.SubElement(gc_content_ring, 'sequence', attrib={'location' : 'GC Content'})
     gc_skew_location = ET.SubElement(gc_skew_ring, 'sequence', attrib={'location' : 'GC Skew'})
 
-
+    return gc_content_location, gc_skew_location
 
 
 
 def main(query_file, reference_directory, output_folder, output_file, image_output_file, title, annotation_file,
          genes_of_interest, contig_order, blast_options, legend_position, image_format, height, width, java_memory, colormap):
-    """
-    """
+
     
-    # Create root element
     root = create_root_element(blast_options, legend_position, query_file, 
                                output_folder, image_output_file, title, image_format)
     
-#    root = create_root_element(query_file, output_folder, image_output_file, title,
-#                               blast_options, legend_position, image_format)
+    cgview_settings = create_cgview_settings_element(root, height, width)
     
-    create_cgview_settings_element(root, height, width)
+    brig_settings = create_brig_settings_element(root, java_memory)
     
-    create_brig_settings_element(root, java_memory)
-    
-    create_special_element(root)
+    special = create_special_element(root)
 
-    create_reference_directory_element(root, reference_directory)
+    refdir = create_reference_directory_element(root, reference_directory)
         
     if annotation_file:
         create_annotation_ring(root, reference_directory, annotation_file, genes_of_interest, contig_order)
     
-    create_ring_element(root, reference_directory, colormap)
+    rings = create_ring_element(root, reference_directory, colormap)
         
-    create_special_ring_element(root)
+    special_ring = create_special_ring_element(root)
     
     write_xml(root, output_file)
 
@@ -835,4 +841,3 @@ if __name__ == '__main__':
     main(args[0], args[1], args[2], args[3], args[4], args[5], args[6],
          args[7], args[8], args[9], args[10], args[11], args[12], args[13],
          args[14], args[15])
-    
