@@ -16,6 +16,11 @@ DESCRIPTION
     The arguments for this script provide some (but not all) 
     of the available options in BRIG, which were the ones I used to change the most.
     
+    USAGE:
+
+    generate_brig_parameters.py -q reference_sequence.fna -rfd path/to/reference/dir -od path/to/output/dir -of path/to/output/dir/output_file
+                                -oi path/to/output/BRIG/output_image -t Image_title -a annotation_file.gbk --genes genes_of_interest.txt
+                                --contig-order contig_order.tsv 
     
     TODO:
         - Parsing of .embl files for annotation;
